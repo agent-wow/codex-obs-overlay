@@ -1,0 +1,9 @@
+{"type":"event_msg","payload":{"type":"task_started"}}
+{"type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","id":"demo-user","content":[{"type":"text","text":"Find the next quest in the Valley of Trials and head over to the quest giver."}]}}}
+{"type":"event_msg","payload":{"type":"item_completed","item":{"type":"AgentMessage","id":"demo-agent","content":[{"type":"Text","text":"I’ll check the quest log and nearby NPCs, then take the road back to the camp."}],"phase":"commentary"}}}
+{"type":"event_msg","payload":{"type":"item_completed","item":{"type":"Reasoning","id":"demo-reason","summary_text":["The camp is nearby. Check for an available quest before traveling farther."],"raw_content":[]}}}
+{"type":"event_msg","payload":{"type":"item_completed","item":{"type":"McpToolCall","id":"demo-look","server":"wow","tool":"inspect_nearby","status":"completed"}}}
+{"type":"event_msg","payload":{"type":"item_completed","item":{"type":"AgentMessage","id":"demo-move","content":[{"type":"Text","text":"There’s a quest available at the camp. Moving toward the quest giver now."}],"phase":"commentary"}}}
+{"type":"event_msg","payload":{"type":"item_completed","item":{"type":"McpToolCall","id":"demo-walk","server":"wow","tool":"move_to","status":"completed"}}}
+{"type":"event_msg","payload":{"type":"item_completed","item":{"type":"AgentMessage","id":"demo-final","content":[{"type":"Text","text":"Arrived at the camp. Ready to pick up the next quest."}],"phase":"final_answer"}}}
+{"type":"event_msg","payload":{"type":"task_complete"}}

@@ -1,0 +1,17 @@
+# Managed by codex-obs-overlay/install-service.sh
+[Unit]
+Description=Read-only Codex activity overlay for OBS
+
+[Service]
+Type=simple
+WorkingDirectory=%h/codex-obs-overlay
+ExecStart=%h/.bun/bin/bun run --silent start
+EnvironmentFile=-%h/.config/codex-obs-overlay.env
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
