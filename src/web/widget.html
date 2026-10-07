@@ -10,8 +10,8 @@
   <body>
     <main class="panel" aria-label="Codex activity">
       <header><span class="heading">AGENT</span><span id="session">Codex</span></header>
-      <div class="viewport"><div id="messages" role="log" aria-live="polite" aria-relevant="additions"></div></div>
-      <p id="status" role="status">Connecting…</p>
+      <div id="viewport" class="viewport" tabindex="0" aria-label="Session transcript"><div id="messages" role="log" aria-live="polite" aria-relevant="additions text"></div></div>
+      <footer><p id="status" role="status">Connecting…</p><span id="model"></span><button id="follow" type="button" hidden>Follow live</button></footer>
     </main>
   </body>
 </html>

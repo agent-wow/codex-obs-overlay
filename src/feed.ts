@@ -13,7 +13,8 @@ export class ProjectFeed {
   readonly readers = new Map<string, SessionReader>();
   readonly listeners = new Set<Listener>();
   lastAccess = Date.now();
-  snapshot: Snapshot = { session: null, status: "waiting", lastActivity: null, entries: [] };
+  snapshot: Snapshot = { session: null, status: "waiting", lastActivity: null, entries: [], epoch: "", info: {} };
+  private signature = "";
   private catalogAvailable = false;
   private stopped = false;
   private busy: Promise<void> | null = null;
@@ -62,21 +63,28 @@ export class ProjectFeed {
       .filter((reader) => reader.projection.eligible && reader.projection.activity > 0)
       .sort((a, b) => b.projection.activity - a.projection.activity || a.session.id.localeCompare(b.session.id));
     const current = candidates[0];
+    const signature = JSON.stringify([this.catalogAvailable, current?.available, current?.session,
+      current?.projection.epoch, current?.projection.revision,
+      [...this.readers.values()].some((reader) => !reader.available)]);
+    if (signature === this.signature) return;
+    this.signature = signature;
     const snapshot: Snapshot = current ? {
       session: { id: current.session.id, title: current.session.title },
       status: this.catalogAvailable && current.available ? current.projection.state : "unavailable",
       lastActivity: new Date(current.projection.activity).toISOString(),
       entries: [...current.projection.entries],
+      epoch: current.projection.epoch,
+      info: current.projection.info,
     } : {
       session: null,
       status: !this.catalogAvailable || [...this.readers.values()].some((reader) => !reader.available) ? "unavailable" : "waiting",
       lastActivity: null,
       entries: [],
+      epoch: "",
+      info: {},
     };
-    if (JSON.stringify(snapshot) !== JSON.stringify(this.snapshot)) {
-      this.snapshot = snapshot;
-      for (const listener of this.listeners) listener(snapshot);
-    }
+    this.snapshot = snapshot;
+    for (const listener of this.listeners) listener(snapshot);
   }
 
   subscribe(listener: Listener): () => void {

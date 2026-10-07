@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { appendFileSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Catalog, projectPath } from "../src/catalog";
-import { SessionReader } from "../src/reader";
+import { MAX_LINE_BYTES, SessionReader } from "../src/reader";
 import { fixture, message, record } from "./helpers";
 
 const fixtures: ReturnType<typeof fixture>[] = [];
@@ -93,10 +93,12 @@ test("oversized and interrupted lines cannot block later records", async () => {
   const catalog = new Catalog(f.home);
   const reader = new SessionReader(catalog.list()[0], catalog);
   await reader.poll();
-  appendFileSync(file, "x".repeat(8 * 1024 * 1024 + 1));
+  appendFileSync(file, "x".repeat(MAX_LINE_BYTES + 1));
   await reader.poll();
   appendFileSync(file, "rest of oversized line\n");
   f.append(file, [message("After", 2)]);
   await reader.poll();
-  expect(reader.projection.entries.map((e) => e.text)).toEqual(["Before", "After"]);
+  expect(reader.projection.entries[0].text).toBe("Before");
+  expect(reader.projection.entries[1].text).toContain("64 MiB reader limit");
+  expect(reader.projection.entries[2].text).toBe("After");
 });

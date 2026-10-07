@@ -4,13 +4,14 @@ import { Projection } from "./projection";
 import type { Session } from "./types";
 
 const CHUNK_BYTES = 64 * 1024;
-const MAX_LINE_BYTES = 8 * 1024 * 1024;
+export const MAX_LINE_BYTES = 64 * 1024 * 1024;
 
 export class SessionReader {
   projection = new Projection();
   available = false;
   private offset = 0;
-  private pending: Buffer = Buffer.alloc(0);
+  private pending: Buffer[] = [];
+  private pendingBytes = 0;
   private discardLine = false;
   private identity = "";
   private anchor: Buffer = Buffer.alloc(0);
@@ -33,7 +34,8 @@ export class SessionReader {
       if (replaced) {
         this.projection = new Projection();
         this.offset = 0;
-        this.pending = Buffer.alloc(0);
+        this.pending = [];
+        this.pendingBytes = 0;
         this.discardLine = false;
         this.anchor = Buffer.alloc(0);
       }
@@ -42,21 +44,35 @@ export class SessionReader {
       while (this.offset < stat.size) {
         const { bytesRead } = await file.read(buffer, 0, Math.min(buffer.length, stat.size - this.offset), this.offset);
         if (!bytesRead) break;
-        const start = this.offset - this.pending.length;
+        const start = this.offset;
         this.offset += bytesRead;
-        const data = this.pending.length ? Buffer.concat([this.pending, buffer.subarray(0, bytesRead)]) : buffer.subarray(0, bytesRead);
+        const data = buffer.subarray(0, bytesRead);
         let cursor = 0;
-        let end: number;
-        while ((end = data.indexOf(10, cursor)) !== -1) {
-          if (!this.discardLine && end - cursor <= MAX_LINE_BYTES) {
-            try { this.projection.consume(JSON.parse(data.subarray(cursor, end).toString("utf8")), start + cursor); }
+        while (cursor < data.length) {
+          const newline = data.indexOf(10, cursor);
+          const end = newline === -1 ? data.length : newline;
+          const lineOffset = start + cursor - this.pendingBytes;
+          if (!this.discardLine) {
+            if (this.pendingBytes + end - cursor > MAX_LINE_BYTES) {
+              this.projection.skipped(lineOffset);
+              this.discardLine = true;
+              this.pending = [];
+              this.pendingBytes = 0;
+            } else {
+              this.pending.push(Buffer.from(data.subarray(cursor, end)));
+              this.pendingBytes += end - cursor;
+            }
+          }
+          if (newline === -1) break;
+          if (!this.discardLine) {
+            try { this.projection.consume(JSON.parse(Buffer.concat(this.pending, this.pendingBytes).toString("utf8")), lineOffset); }
             catch { /* A complete malformed record must not stall subsequent activity. */ }
           }
+          this.pending = [];
+          this.pendingBytes = 0;
           this.discardLine = false;
           cursor = end + 1;
         }
-        if (data.length - cursor > MAX_LINE_BYTES) this.discardLine = true;
-        this.pending = this.discardLine ? Buffer.alloc(0) : Buffer.from(data.subarray(cursor));
       }
       this.anchor = Buffer.alloc(Math.min(64, this.offset));
       if (this.anchor.length) await file.read(this.anchor, 0, this.anchor.length, this.offset - this.anchor.length);
