@@ -40,8 +40,8 @@ test("shares readers, recovers recent history, waits without fallback and evicts
   const [feed, same] = await Promise.all([hub.get("/play"), hub.get("/play")]);
   expect(feed).toBe(same);
   expect(feed.readers.size).toBe(1);
-  expect(feed.snapshot.entries).toHaveLength(100);
-  expect(feed.snapshot.entries[0].text).toBe("Message 30");
+  expect(feed.snapshot.entries).toHaveLength(130);
+  expect(feed.snapshot.entries[0].text).toBe("Message 0");
   expect((await hub.get("/missing")).snapshot).toMatchObject({ session: null, status: "waiting", entries: [] });
   const unsub = feed.subscribe(() => {});
   feed.lastAccess = 0;
